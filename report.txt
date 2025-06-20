@@ -1,0 +1,979 @@
+"""
+PDF Report Generator for Food Supply Optimization Dashboard
+---------------------------------------------------------
+Generates comprehensive PDF reports with forecasts, visualizations, and optimization results.
+"""
+
+import os
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import matplotlib
+matplotlib.use('Agg')  # Use non-interactive backend
+import io
+from datetime import datetime, timedelta, date
+from reportlab.lib.pagesizes import letter, landscape
+from reportlab.lib import colors
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, Image
+from reportlab.platypus import PageBreak, KeepTogether, KeepInFrame
+from reportlab.lib.units import inch
+from reportlab.pdfgen import canvas
+from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_RIGHT
+from reportlab.platypus import BaseDocTemplate, Frame, PageTemplate, NextPageTemplate
+
+def create_explanation_paragraph(text, styles):
+    """Create a paragraph with enhanced explanation styling"""
+    explanation_style = ParagraphStyle(
+        'Explanation',
+        parent=styles['Normal'],
+        fontName='Helvetica-Oblique',
+        fontSize=10,
+        leading=14,
+        borderWidth=1,
+        borderColor=colors.lightgrey,
+        borderPadding=10,
+        borderRadius=5,
+        leftIndent=12,
+        rightIndent=12,
+        backColor=colors.lightyellow.clone(alpha=0.3),
+        textColor=colors.darkslategray,
+    )
+    return Paragraph(text, explanation_style)
+
+def create_forecast_plot(predictions, center_id, meal_id, pred_col):
+    """
+    Create a forecast plot for a specific center and meal.
+    
+    Args:
+        predictions (DataFrame): Forecast predictions
+        center_id (int): Center ID
+        meal_id (int): Meal ID
+        pred_col (str): Column name for predictions
+        
+    Returns:
+        BytesIO: Plot image as bytes
+    """
+    # Set professional style
+    plt.style.use('seaborn-v0_8-whitegrid')  # Professional style
+    colors_palette = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd']  # Professional colors
+    
+    # Filter data
+    center_meal_forecast = predictions[
+        (predictions['center_id'] == center_id) &
+        (predictions['meal_id'] == meal_id)
+    ]
+    
+    if center_meal_forecast.empty:
+        return None
+    
+    # Create plot
+    plt.figure(figsize=(7, 3.5))  # Reduced size to fit within page
+    plt.plot(center_meal_forecast['week'], center_meal_forecast[pred_col], marker='o', color=colors_palette[0], linewidth=2)
+    plt.title(f'Demand Forecast for Center {center_id}, Meal {meal_id}', fontsize=14, fontweight='bold')
+    plt.xlabel('Week', fontsize=12)
+    plt.ylabel('Predicted Orders', fontsize=12)
+    plt.grid(linestyle='--', alpha=0.7)
+    plt.tight_layout(pad=3.0)
+    
+    # Add a light background color
+    ax = plt.gca()
+    ax.set_facecolor('#f8f9fa')
+    
+    # Save plot to bytes
+    img_bytes = io.BytesIO()
+    plt.savefig(img_bytes, format='png', dpi=100, bbox_inches='tight')
+    img_bytes.seek(0)
+    plt.close()
+    
+    return img_bytes
+
+def create_optimization_plot(inventory_df, center_id, meal_id, pred_col):
+    """
+    Create an optimization plot for a specific center and meal.
+    
+    Args:
+        inventory_df (DataFrame): Inventory optimization results
+        center_id (int): Center ID
+        meal_id (int): Meal ID
+        pred_col (str): Column name for predictions
+        
+    Returns:
+        BytesIO: Plot image as bytes
+    """
+    # Set professional style
+    plt.style.use('seaborn-v0_8-whitegrid')  # Professional style
+    colors_palette = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd']  # Professional colors
+    
+    # Filter data
+    center_meal_inventory = inventory_df[
+        (inventory_df['center_id'] == center_id) &
+        (inventory_df['meal_id'] == meal_id)
+    ]
+    
+    if center_meal_inventory.empty:
+        return None
+    
+    # Create plot
+    plt.figure(figsize=(7, 3.5))  # Reduced size to fit within page
+    plt.plot(center_meal_inventory['week'], center_meal_inventory[pred_col], marker='o', 
+             color=colors_palette[0], label='Predicted Demand', linewidth=2)
+    plt.plot(center_meal_inventory['week'], center_meal_inventory['final_inventory'], marker='s', 
+             color=colors_palette[1], label='Required Inventory', linewidth=2)
+    plt.title(f'Inventory Plan for Center {center_id}, Meal {meal_id}', fontsize=14, fontweight='bold')
+    plt.xlabel('Week', fontsize=12)
+    plt.ylabel('Units', fontsize=12)
+    plt.grid(linestyle='--', alpha=0.7)
+    plt.legend(fontsize=10, frameon=True, facecolor='white', edgecolor='lightgray')
+    plt.tight_layout(pad=3.0)
+    
+    # Add a light background color
+    ax = plt.gca()
+    ax.set_facecolor('#f8f9fa')
+    
+    # Save plot to bytes
+    img_bytes = io.BytesIO()
+    plt.savefig(img_bytes, format='png', dpi=100, bbox_inches='tight')
+    img_bytes.seek(0)
+    plt.close()
+    
+    return img_bytes
+
+def create_pie_chart(inventory_df):
+    """
+    Create a pie chart for cost distribution.
+    
+    Args:
+        inventory_df (DataFrame): Inventory optimization results
+        
+    Returns:
+        BytesIO: Plot image as bytes
+    """
+    # Set professional style
+    plt.style.use('seaborn-v0_8-whitegrid')  # Professional style
+    colors_palette = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd']  # Professional colors
+    
+    # Calculate costs
+    storage_cost = inventory_df['storage_cost'].sum()
+    transport_cost = inventory_df['transport_cost'].sum()
+    shortage_cost = inventory_df['shortage_cost'].sum()
+    
+    # Create plot
+    plt.figure(figsize=(5, 5))  # Reduced size to fit within page
+    plt.pie(
+        [storage_cost, transport_cost, shortage_cost],
+        labels=['Storage', 'Transport', 'Shortage'],
+        autopct='%1.1f%%',
+        startangle=90,
+        shadow=True,
+        explode=(0.05, 0, 0),
+        colors=colors_palette[:3],
+        wedgeprops={'edgecolor': 'white', 'linewidth': 1.5}
+    )
+    plt.title('Cost Distribution', fontsize=14, fontweight='bold')
+    plt.tight_layout(pad=3.0)
+    
+    # Save plot to bytes
+    img_bytes = io.BytesIO()
+    plt.savefig(img_bytes, format='png', dpi=100, bbox_inches='tight')
+    img_bytes.seek(0)
+    plt.close()
+    
+    return img_bytes
+
+def create_date_specific_plot(demand_factors):
+    """
+    Create a bar chart for date-specific adjustment factors.
+    
+    Args:
+        demand_factors (dict): Demand adjustment factors
+        
+    Returns:
+        BytesIO: Plot image as bytes
+    """
+    # Set professional style
+    plt.style.use('seaborn-v0_8-whitegrid')  # Professional style
+    colors_palette = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd']  # Professional colors
+    
+    # Extract factors
+    factors = [
+        (demand_factors['holiday_factor'] - 1) * 100,
+        (demand_factors['weather_factor'] - 1) * 100,
+        (demand_factors['weekday_factor'] - 1) * 100,
+        (demand_factors['combined_factor'] - 1) * 100
+    ]
+    
+    # Create plot
+    plt.figure(figsize=(7, 3.5))  # Reduced size to fit within page
+    bars = plt.bar(
+        ['Holiday', 'Weather', 'Day of Week', 'Combined'],
+        factors,
+        color=colors_palette[:4],
+        width=0.6
+    )
+    
+    # Add value labels
+    for bar in bars:
+        height = bar.get_height()
+        plt.text(
+            bar.get_x() + bar.get_width()/2.,
+            height + 0.3,
+            f'{height:.1f}%',
+            ha='center',
+            fontweight='bold'
+        )
+    
+    plt.title('Demand Adjustment Factors', fontsize=14, fontweight='bold')
+    plt.ylabel('Impact (%)', fontsize=12)
+    plt.grid(axis='y', linestyle='--', alpha=0.7)
+    plt.tight_layout(pad=3.0)
+    
+    # Add a light background color
+    ax = plt.gca()
+    ax.set_facecolor('#f8f9fa')
+    
+    # Save plot to bytes
+    img_bytes = io.BytesIO()
+    plt.savefig(img_bytes, format='png', dpi=100, bbox_inches='tight')
+    img_bytes.seek(0)
+    plt.close()
+    
+    return img_bytes
+
+def dataframe_to_table(df, max_rows=None):
+    """
+    Convert a pandas DataFrame to a ReportLab Table with enhanced styling.
+    
+    Args:
+        df (DataFrame): DataFrame to convert
+        max_rows (int, optional): Maximum number of rows to include
+        
+    Returns:
+        Table: Styled table
+    """
+    # Limit rows if needed
+    if max_rows is not None and len(df) > max_rows:
+        df = df.head(max_rows)
+    
+    # Convert to list of lists
+    data = [df.columns.tolist()]
+    data.extend(df.values.tolist())
+    
+    # Format float values to 2 decimal places
+    for i in range(1, len(data)):
+        for j in range(len(data[i])):
+            if isinstance(data[i][j], float):
+                data[i][j] = round(data[i][j], 2)
+    
+    # Create enhanced table style
+    style = TableStyle([
+        # Header styling
+        ('BACKGROUND', (0, 0), (-1, 0), colors.darkblue),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+        ('ALIGN', (0, 0), (-1, 0), 'CENTER'),
+        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+        ('FONTSIZE', (0, 0), (-1, 0), 10),
+        ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+        ('TOPPADDING', (0, 0), (-1, 0), 12),
+        
+        # Body styling - alternate row colors
+        ('BACKGROUND', (0, 1), (-1, -1), colors.white),
+        ('TEXTCOLOR', (0, 1), (-1, -1), colors.black),
+        ('ALIGN', (0, 1), (-1, -1), 'CENTER'),
+        ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
+        ('FONTSIZE', (0, 1), (-1, -1), 9),
+        ('BOTTOMPADDING', (0, 1), (-1, -1), 6),
+        ('TOPPADDING', (0, 1), (-1, -1), 6),
+        
+        # Grid styling
+        ('GRID', (0, 0), (-1, -1), 0.5, colors.lightgrey),
+        ('BOX', (0, 0), (-1, -1), 1, colors.darkblue),
+        ('BOX', (0, 0), (-1, 0), 1, colors.darkblue),
+        ('LINEABOVE', (0, 1), (-1, 1), 1, colors.darkblue),
+    ])
+    
+    # Add alternating row colors
+    for i in range(1, len(data)):
+        if i % 2 == 0:
+            style.add('BACKGROUND', (0, i), (-1, i), colors.lightblue.clone(alpha=0.2))
+    
+    # Calculate appropriate column widths based on content
+    col_widths = []
+    for i in range(len(df.columns)):
+        # Get the maximum width needed for this column
+        col_data = [str(row[i]) for row in data]
+        max_width = max([len(str(item)) for item in col_data]) * 0.1
+        col_widths.append(min(max(max_width, 0.7), 1.5) * inch)
+    
+    # Create table with calculated column widths
+    table = Table(data, colWidths=col_widths, repeatRows=1)
+    table.setStyle(style)
+    
+    return table
+
+def create_professional_document(filename, company_name=None):
+    """Create a professionally styled PDF document with header, footer and borders"""
+    # Create document with custom page layout
+    doc = BaseDocTemplate(
+        filename,
+        pagesize=letter,
+        rightMargin=0.75*inch,
+        leftMargin=0.75*inch,
+        topMargin=0.75*inch,
+        bottomMargin=0.75*inch,
+    )
+    
+    # Frame for the content - reduced height to ensure content stays within page
+    frame = Frame(
+        doc.leftMargin,
+        doc.bottomMargin,
+        doc.width,
+        doc.height,
+        id='normal',
+        showBoundary=0,  # No visible frame border
+    )
+    
+    # Function to create the page elements (footer only, no header)
+    def add_page_elements(canvas, doc):
+        canvas.saveState()
+        
+        # No blue top border line - REMOVED as requested
+        
+        # Page border
+        canvas.setStrokeColorRGB(0.8, 0.8, 0.8)  # Light gray
+        canvas.setLineWidth(1)
+        canvas.rect(
+            doc.leftMargin - 0.1*inch,
+            doc.bottomMargin - 0.1*inch,
+            doc.width + 0.2*inch,
+            doc.height + 0.2*inch
+        )
+        
+        # Footer with page number and date
+        canvas.setFont("Helvetica", 9)
+        canvas.setFillColorRGB(0.5, 0.5, 0.5)  # Medium gray
+        page_num = canvas.getPageNumber()
+        text = f"Page {page_num} | Generated on {datetime.now().strftime('%Y-%m-%d')}"
+        canvas.drawRightString(doc.width + doc.leftMargin, doc.bottomMargin - 0.3*inch, text)
+        
+        # Company name in the footer - just once
+        canvas.setFillColorRGB(0.2, 0.4, 0.6)  # Navy blue
+        canvas.setFont("Helvetica-Bold", 10)
+        canvas.drawString(doc.leftMargin, doc.bottomMargin - 0.3*inch, "Food Supply Optimization")
+        
+        canvas.restoreState()
+    
+    # Create the page template
+    template = PageTemplate(
+        id='professional_template',
+        frames=[frame],
+        onPage=add_page_elements
+    )
+    
+    # Add the template to the document
+    doc.addPageTemplates([template])
+    
+    return doc
+
+def add_section_divider(story, styles):
+    """Add a visual divider between report sections"""
+    story.append(Spacer(1, 0.2*inch))
+    
+    # Create a simple line for the divider
+    divider_style = ParagraphStyle(
+        'Divider',
+        parent=styles['Normal'],
+        alignment=TA_CENTER,
+        textColor=colors.darkblue
+    )
+    
+    # Using a single line character that looks more professional
+    story.append(Paragraph("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━", divider_style))
+    
+    story.append(Spacer(1, 0.2*inch))
+
+def generate_full_report(
+    predictions, 
+    inventory_df=None, 
+    service_level=None, 
+    center_id=None, 
+    meal_id=None,
+    date_specific=None,
+    output_path=None
+):
+    """
+    Generate a comprehensive PDF report with forecasts and optimization results.
+    
+    Args:
+        predictions (DataFrame): Forecast predictions
+        inventory_df (DataFrame, optional): Inventory optimization results
+        service_level (float, optional): Service level from optimization
+        center_id (int, optional): Center ID to focus on
+        meal_id (int, optional): Meal ID to focus on
+        date_specific (dict, optional): Date-specific forecast data
+        output_path (str, optional): Path to save the PDF file
+        
+    Returns:
+        str: Path to the generated PDF file
+    """
+    # Set default output path if not provided
+    if output_path is None:
+        output_path = f"food_supply_optimization_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
+    
+    # Determine the column name for predictions
+    if 'predicted_orders' in predictions.columns:
+        pred_col = 'predicted_orders'
+    elif 'prediction' in predictions.columns:
+        pred_col = 'prediction'
+    else:
+        pred_col = predictions.columns[-1]  # Fallback to last column
+    
+    # Select center and meal if not provided
+    if center_id is None:
+        center_id = predictions['center_id'].min()
+    if meal_id is None:
+        meal_id = predictions['meal_id'].min()
+        
+    # Make sure center_id and meal_id exist in data
+    valid_center_ids = predictions['center_id'].unique()
+    valid_meal_ids = predictions['meal_id'].unique()
+    
+    if center_id not in valid_center_ids:
+        center_id = valid_center_ids[0]
+    if meal_id not in valid_meal_ids:
+        meal_id = valid_meal_ids[0]
+    
+    # Create professional styled document
+    doc = create_professional_document(output_path)
+
+    # Enhanced styles
+    styles = getSampleStyleSheet()
+
+    # Title style
+    title_style = ParagraphStyle(
+        'CustomTitle',
+        parent=styles['Title'],
+        fontSize=24,
+        leading=30,
+        textColor=colors.darkblue,
+        spaceAfter=12,
+        alignment=TA_CENTER,
+    )
+
+    # Heading styles
+    heading_style = ParagraphStyle(
+        'CustomHeading1',
+        parent=styles['Heading1'],
+        fontSize=18,
+        leading=24,
+        textColor=colors.darkblue,
+        borderWidth=0,
+        borderRadius=5,
+        borderPadding=5,
+        borderColor=colors.lightblue,
+        backColor=colors.lightblue.clone(alpha=0.2),
+    )
+
+    subheading_style = ParagraphStyle(
+        'CustomHeading2',
+        parent=styles['Heading2'],
+        fontSize=14,
+        leading=18,
+        textColor=colors.darkblue,
+        borderWidth=0,
+        borderBottomWidth=1,
+        borderColor=colors.lightblue,
+        spaceAfter=6,
+    )
+
+    # Normal text style
+    normal_style = ParagraphStyle(
+        'CustomNormal',
+        parent=styles['Normal'],
+        fontSize=10,
+        leading=14,
+        spaceBefore=6,
+        spaceAfter=6,
+    )
+    
+    # Create story
+    story = []
+    
+    # Title - centered
+    story.append(Paragraph("Food Supply Optimization Report", title_style))
+    date_style = ParagraphStyle(
+        'DateStyle',
+        parent=styles['Normal'],
+        fontSize=10,
+        alignment=TA_CENTER,
+        textColor=colors.darkgray,
+    )
+    story.append(Paragraph(f"Generated on {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}", date_style))
+    story.append(Spacer(1, 0.3*inch))
+    
+    # Executive Summary
+    story.append(Paragraph("Executive Summary", heading_style))
+    executive_summary = """
+    <b>What This Report Provides:</b> This report helps kitchen managers know how much food to prepare 
+    and how to plan inventory efficiently.
+
+    <b>Key Terms Explained:</b>
+    - <b>Demand Forecast:</b> The number of meals customers are expected to order
+    - <b>Inventory Plan:</b> How much food to keep on hand each week
+    - <b>Service Level:</b> The percentage of customer orders you'll be able to fulfill
+    - <b>Adjusted Demand:</b> How demand changes due to factors like day of week, holidays, or weather
+
+    Use this report to order the right ingredients, schedule kitchen staff, minimize food waste, 
+    and control your food costs while keeping customers satisfied.
+    """
+    story.append(create_explanation_paragraph(executive_summary, styles))
+    story.append(Spacer(1, 0.25*inch))
+    add_section_divider(story, styles)
+    
+    # Forecast section
+    story.append(Paragraph("Demand Forecast", heading_style))
+    story.append(Spacer(1, 0.1*inch))
+    
+    # Forecast explanation
+    forecast_explanation = """
+    <b>What This Means:</b> This section shows how many meals we expect customers to order in the coming weeks.
+
+    In simple terms, these numbers tell kitchen managers how much food to prepare for each meal type at each center.
+    When numbers go up, prepare more food. When numbers go down, prepare less food.
+
+    The "week" column shows the week number, starting from a base date in our system.
+    """
+    story.append(create_explanation_paragraph(forecast_explanation, styles))
+    story.append(Spacer(1, 0.15*inch))
+    
+    # Forecast summary
+    summary_text = f"""
+    This report provides a comprehensive analysis of demand forecasts and supply chain optimization
+    for food distribution centers. The forecast covers {len(predictions['week'].unique())} weeks, 
+    {len(predictions['center_id'].unique())} centers, and {len(predictions['meal_id'].unique())} meal types.
+    """
+    story.append(Paragraph(summary_text, normal_style))
+    story.append(Spacer(1, 0.15*inch))
+    
+    # Forecast table in KeepTogether to prevent page breaks within table
+    forecast_elements = []
+    forecast_elements.append(Paragraph("Forecast Sample Data", subheading_style))
+    forecast_elements.append(Spacer(1, 0.1*inch))
+    
+    # Create table for forecast data (first 10 rows)
+    forecast_sample = predictions.head(10).reset_index(drop=True)
+    forecast_table = dataframe_to_table(forecast_sample)
+    forecast_elements.append(forecast_table)
+    forecast_elements.append(Spacer(1, 0.2*inch))
+    
+    # Add the forecast table section as a unit that shouldn't break across pages
+    story.append(KeepTogether(forecast_elements))
+    
+    add_section_divider(story, styles)
+    
+    # Forecast visualization in KeepTogether
+    viz_elements = []
+    viz_elements.append(Paragraph("Forecast Visualization", subheading_style))
+    viz_elements.append(Spacer(1, 0.1*inch))
+    
+    # Create forecast plot for the selected center and meal
+    plot_bytes = create_forecast_plot(predictions, center_id, meal_id, pred_col)
+    if plot_bytes:
+        img = Image(plot_bytes, width=6*inch, height=3*inch)
+        img.hAlign = 'CENTER'  # Center the image
+        viz_elements.append(img)
+    else:
+        viz_elements.append(Paragraph("No forecast data available for the selected center and meal combination.", normal_style))
+    
+    viz_elements.append(Spacer(1, 0.2*inch))
+    
+    # Add visualization as a KeepTogether unit
+    story.append(KeepTogether(viz_elements))
+    
+    # Add page break after forecast section
+    story.append(PageBreak())
+    
+    # Optimization section
+    if inventory_df is not None:
+        story.append(Paragraph("Supply Chain Optimization", heading_style))
+        story.append(Spacer(1, 0.1*inch))
+        
+        # Optimization explanation
+        optimization_explanation = """
+        <b>What This Means:</b> This section shows how to stock your inventory to meet all customer demands while keeping costs low.
+
+        The "service level" shows what percentage of customer orders you'll be able to fulfill. 100% means you'll never run out of food.
+        The "total required inventory" is how much food you need altogether across all centers.
+        The "total cost" is how much money you'll spend on all this food.
+        """
+        story.append(create_explanation_paragraph(optimization_explanation, styles))
+        story.append(Spacer(1, 0.15*inch))
+        
+        # Optimization summary
+        if service_level is not None:
+            total_inventory = inventory_df['final_inventory'].sum()
+            total_cost = inventory_df['total_cost'].sum()
+            avg_weekly_cost = total_cost / len(inventory_df['week'].unique())
+            
+            summary_text = f"""
+            The supply chain optimization achieves a service level of {service_level:.2%} with
+            a total required inventory of {int(total_inventory):,} units. The total cost is 
+            ${total_cost:,.2f} with an average weekly cost of ${avg_weekly_cost:,.2f}.
+            """
+            story.append(Paragraph(summary_text, normal_style))
+            story.append(Spacer(1, 0.15*inch))
+        
+        add_section_divider(story, styles)
+        
+        # Cost breakdown - keep together
+        cost_elements = []
+        cost_elements.append(Paragraph("Cost Distribution", subheading_style))
+        cost_elements.append(Spacer(1, 0.1*inch))
+        
+        # Create pie chart for cost distribution
+        pie_bytes = create_pie_chart(inventory_df)
+        img = Image(pie_bytes, width=3.5*inch, height=3.5*inch)
+        img.hAlign = 'CENTER'  # Center the image
+        cost_elements.append(img)
+        
+        story.append(KeepTogether(cost_elements))
+        story.append(Spacer(1, 0.2*inch))
+        
+        # Inventory planning - keep separate from cost section
+        story.append(PageBreak())  # Force a new page for inventory plan section
+        
+        # Verify center_id and meal_id exist in the inventory data
+        valid_inventory_combinations = []
+        for c in inventory_df['center_id'].unique():
+            for m in inventory_df['meal_id'].unique():
+                if len(inventory_df[(inventory_df['center_id'] == c) & (inventory_df['meal_id'] == m)]) > 0:
+                    valid_inventory_combinations.append((c, m))
+                    
+        if not valid_inventory_combinations:
+            # No valid combinations found
+            center_id, meal_id = None, None
+        elif (center_id, meal_id) not in valid_inventory_combinations:
+            # Current selection not valid, pick the first valid one
+            center_id, meal_id = valid_inventory_combinations[0]
+        
+        if center_id is not None and meal_id is not None:
+            # Inventory planning explanation section
+            plan_elements = []
+            plan_elements.append(Paragraph(f"Inventory Plan for Center {center_id}, Meal {meal_id}", subheading_style))
+            plan_elements.append(Spacer(1, 0.1*inch))
+            
+            # Inventory plan explanation
+            inventory_explanation = """
+            <b>What This Means:</b> This table shows exactly how much food to have ready each week for this specific center and meal.
+
+            - "predicted_demand": How many meals customers will likely order
+            - "base_inventory": The minimum amount you should prepare
+            - "lead_time_demand": Extra meals needed while preparing more food
+            - "final_inventory": The total amount you should have ready
+            - "total_cost": How much you'll spend that week on this meal
+            """
+            plan_elements.append(create_explanation_paragraph(inventory_explanation, styles))
+            plan_elements.append(Spacer(1, 0.15*inch))
+            
+            story.append(KeepTogether(plan_elements))
+            
+            # Optimization plot - keep together
+            opt_plot_elements = []
+            # Create optimization plot
+            opt_plot_bytes = create_optimization_plot(inventory_df, center_id, meal_id, pred_col)
+            if opt_plot_bytes:
+                img = Image(opt_plot_bytes, width=6*inch, height=3*inch)
+                img.hAlign = 'CENTER'  # Center the image
+                opt_plot_elements.append(img)
+            else:
+                opt_plot_elements.append(Paragraph("No inventory data available for the selected center and meal combination.", normal_style))
+            
+            opt_plot_elements.append(Spacer(1, 0.2*inch))
+            
+            story.append(KeepTogether(opt_plot_elements))
+            
+            # Detailed inventory table section
+            inventory_elements = []
+            inventory_elements.append(Paragraph("Detailed Inventory Plan (Sample)", subheading_style))
+            inventory_elements.append(Spacer(1, 0.1*inch))
+            
+            # Filter inventory for the selected center and meal
+            filtered_inventory = inventory_df[
+                (inventory_df['center_id'] == center_id) &
+                (inventory_df['meal_id'] == meal_id)
+            ].reset_index(drop=True)
+            
+            if not filtered_inventory.empty:
+                # Select relevant columns
+                cols_to_show = ['week', pred_col, 'base_inventory', 'lead_time_demand', 'final_inventory', 'total_cost']
+                inventory_sample = filtered_inventory[cols_to_show]
+                
+                # Create table
+                inventory_table = dataframe_to_table(inventory_sample)
+                inventory_elements.append(inventory_table)
+            else:
+                inventory_elements.append(Paragraph("No inventory plan data available for the selected center and meal combination.", normal_style))
+            
+            # Add inventory table as keep-together unit
+            story.append(KeepTogether(inventory_elements))
+            story.append(Spacer(1, 0.2*inch))
+        
+        # Add page break after optimization section
+        story.append(PageBreak())
+    
+    # Date-specific forecast section
+    if date_specific is not None:
+        story.append(Paragraph("Date-Specific Forecast", heading_style))
+        story.append(Spacer(1, 0.1*inch))
+        
+        # Date-specific explanation
+        date_explanation = """
+        <b>What This Means:</b> This predicts meal orders for a specific date, adjusted for special factors like holidays and weather.
+
+        The "baseline demand" is what you'd normally expect on a regular day.
+        The "adjustment factor" shows how much to increase or decrease your preparation.
+        The "adjusted demand" is the final number of meals you should prepare.
+
+        For example, a 1.20x multiplier means "prepare 20% more food than usual."
+        """
+        story.append(create_explanation_paragraph(date_explanation, styles))
+        story.append(Spacer(1, 0.15*inch))
+        
+        # FIX FOR DATE ISSUE - Handle date properly without modifying it
+        # Get the date from date_specific without changing it
+        forecast_date = date_specific.get('date')
+        
+        # Only set a default if it's completely missing
+        if forecast_date is None:
+            forecast_date = datetime.now().date()  # Use today's date as default
+            date_specific['date'] = forecast_date
+        
+        # Convert date to datetime if it's a date object for formatting
+        if isinstance(forecast_date, date) and not isinstance(forecast_date, datetime):
+            # Keep the same date without adding a day
+            forecast_date = datetime.combine(forecast_date, datetime.min.time())
+        
+        # Rest of the date-specific section
+        baseline = date_specific.get('baseline', 0)
+        adjusted = date_specific.get('adjusted', 0)
+        factors = date_specific.get('factors', {})
+        
+        # Handle potentially missing factors with defaults
+        holiday_factor = factors.get('holiday_factor', 1.0)
+        weather_factor = factors.get('weather_factor', 1.0)
+        weekday_factor = factors.get('weekday_factor', 1.0)
+        combined_factor = factors.get('combined_factor', 1.0)
+        
+        # Recalculate the combined factor if it's invalid
+        if combined_factor == 0 or combined_factor == 1.0 and (holiday_factor != 1.0 or weather_factor != 1.0 or weekday_factor != 1.0):
+            combined_factor = holiday_factor * weather_factor * weekday_factor
+            factors['combined_factor'] = combined_factor
+            
+        # Update adjusted demand if needed
+        if baseline > 0 and adjusted == 0:
+            adjusted = baseline * combined_factor
+            date_specific['adjusted'] = adjusted
+        
+        # Use a safe dictionary for create_date_specific_plot
+        safe_factors = {
+            'holiday_factor': holiday_factor,
+            'weather_factor': weather_factor,
+            'weekday_factor': weekday_factor,
+            'combined_factor': combined_factor
+        }
+        
+        percent_change = (combined_factor - 1) * 100
+        
+        # Format the date string properly
+        if isinstance(forecast_date, datetime):
+            date_str = forecast_date.strftime('%A, %B %d, %Y')
+        elif isinstance(forecast_date, date):
+            date_str = forecast_date.strftime('%A, %B %d, %Y')
+        elif isinstance(forecast_date, str):
+            date_str = forecast_date
+        else:
+            date_str = str(forecast_date)
+        
+        # Format summary as a table for better appearance
+        summary_data = [
+            ["Forecast Date:", date_str],
+            ["Center ID:", str(center_id)],
+            ["Meal ID:", str(meal_id)],
+            ["Baseline Demand:", f"{baseline:.2f} units"],
+            ["Adjustment Factor:", f"{combined_factor:.2f}x"],
+            ["Adjusted Demand:", f"{adjusted:.2f} units ({percent_change:.1f}%)"]
+        ]
+        
+        summary_table = Table(summary_data, colWidths=[2*inch, 4*inch])
+        summary_table.setStyle(TableStyle([
+            ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, -1), 10),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+            ('TOPPADDING', (0, 0), (-1, -1), 6),
+            ('ALIGN', (0, 0), (0, -1), 'RIGHT'),
+            ('ALIGN', (1, 0), (1, -1), 'LEFT'),
+            ('BACKGROUND', (0, 0), (-1, -1), colors.white),
+        ]))
+        
+        story.append(KeepTogether([summary_table]))
+        story.append(Spacer(1, 0.2*inch))
+        
+        # Adjustment factors visualization - keep together
+        adj_factor_elements = []
+        adj_factor_elements.append(Paragraph("Demand Adjustment Factors", subheading_style))
+        adj_factor_elements.append(Spacer(1, 0.1*inch))
+        
+        # Create adjustment factors plot
+        factors_plot = create_date_specific_plot(safe_factors)
+        img = Image(factors_plot, width=6*inch, height=3*inch)
+        img.hAlign = 'CENTER'  # Center the image
+        adj_factor_elements.append(img)
+        
+        story.append(KeepTogether(adj_factor_elements))
+        story.append(Spacer(1, 0.2*inch))
+        
+        # Adjustment factors table - keep together
+        factor_table_elements = []
+        factor_table_elements.append(Paragraph("Adjustment Factors Breakdown", subheading_style))
+        factor_table_elements.append(Spacer(1, 0.1*inch))
+        
+        # Create data for factors table
+        factors_data = {
+            'Factor': ['Holiday', 'Weather', 'Day of Week', 'Combined'],
+            'Impact (%)': [
+                f"{(holiday_factor - 1) * 100:.1f}%",
+                f"{(weather_factor - 1) * 100:.1f}%",
+                f"{(weekday_factor - 1) * 100:.1f}%",
+                f"{(combined_factor - 1) * 100:.1f}%"
+            ],
+            'Multiplier': [
+                f"{holiday_factor:.2f}x",
+                f"{weather_factor:.2f}x",
+                f"{weekday_factor:.2f}x",
+                f"{combined_factor:.2f}x"
+            ]
+        }
+        factors_df = pd.DataFrame(factors_data)
+        
+        # Create table for factors
+        factors_table = dataframe_to_table(factors_df)
+        factor_table_elements.append(factors_table)
+        
+        story.append(KeepTogether(factor_table_elements))
+    
+    # Build the PDF
+    doc.build(story)
+    
+    return output_path
+
+def generate_sample_report(output_path=None):
+    """
+    Generate a sample report with random data for demonstration purposes.
+    
+    Args:
+        output_path (str, optional): Path to save the PDF file
+        
+    Returns:
+        str: Path to the generated PDF file
+    """
+    # Generate sample predictions data
+    centers = [10, 20, 30]
+    meals = [1885, 1993, 2345, 2456]
+    weeks = list(range(146, 156))
+    
+    data = []
+    for center in centers:
+        for meal in meals:
+            for week in weeks:
+                base_demand = np.random.normal(40, 15)
+                # Add some trends
+                if meal == 1885:
+                    # Declining trend
+                    multiplier = 1 - 0.1 * (week - weeks[0]) / len(weeks)
+                elif meal == 1993:
+                    # Stable with slight noise
+                    multiplier = 1 + 0.05 * np.sin((week - weeks[0]) / 2)
+                else:
+                    # Growing trend
+                    multiplier = 1 + 0.07 * (week - weeks[0]) / len(weeks)
+                
+                # Center-specific adjustments
+                if center == 10:
+                    center_mult = 0.9
+                elif center == 20:
+                    center_mult = 1.0
+                else:
+                    center_mult = 1.1
+                
+                demand = max(5, base_demand * multiplier * center_mult)
+                data.append([week, center, meal, demand])
+    
+    predictions = pd.DataFrame(data, columns=['week', 'center_id', 'meal_id', 'predicted_demand'])
+    
+    # Generate sample inventory data
+    inventory_data = []
+    for row in data:
+        week, center, meal, demand = row
+        
+        # Base inventory (10% buffer)
+        base_inventory = demand * 1.1
+        
+        # Lead time demand (average of next 2 weeks)
+        next_weeks = [w for w in data if w[0] > week and w[0] <= week + 2 and w[1] == center and w[2] == meal]
+        lead_time_demand = sum([w[3] for w in next_weeks]) / len(next_weeks) if next_weeks else demand
+        
+        # Final inventory (enough to cover demand plus safety buffer)
+        final_inventory = round(max(base_inventory, demand + lead_time_demand * 0.2))
+        
+        # Costs
+        storage_cost = final_inventory * 2.5
+        transport_cost = final_inventory * 3
+        shortage_cost = 0  # No shortages as we're using safety buffer
+        total_cost = storage_cost + transport_cost + shortage_cost
+        
+        inventory_data.append([
+            week, center, meal, demand, base_inventory, lead_time_demand,
+            final_inventory, storage_cost, transport_cost, shortage_cost, total_cost
+        ])
+    
+    inventory_df = pd.DataFrame(inventory_data, columns=[
+        'week', 'center_id', 'meal_id', 'predicted_demand', 'base_inventory', 'lead_time_demand',
+        'final_inventory', 'storage_cost', 'transport_cost', 'shortage_cost', 'total_cost'
+    ])
+    
+    # Generate sample date-specific forecast
+    # Use date object instead of datetime to match Streamlit date picker output
+    forecast_date = datetime.now().date()
+    baseline_demand = 32.72
+    
+    factors = {
+        'holiday_factor': 1.0,  # No holiday effect
+        'weather_factor': 1.0,  # No weather effect
+        'weekday_factor': 1.2,  # Weekend effect (+20%)
+        'combined_factor': 1.2  # Combined effect (+20%)
+    }
+    
+    adjusted_demand = baseline_demand * factors['combined_factor']
+    
+    date_specific = {
+        'date': forecast_date,  # Plain date object
+        'baseline': baseline_demand,
+        'adjusted': adjusted_demand,
+        'factors': factors
+    }
+    
+    # Generate the report
+    return generate_full_report(
+        predictions=predictions,
+        inventory_df=inventory_df,
+        service_level=1.0,
+        center_id=20,
+        meal_id=1993,
+        date_specific=date_specific,
+        output_path=output_path
+    )
+
+if __name__ == "__main__":
+    # Test report generation
+    output_path = generate_sample_report()
+    print(f"Sample report generated: {output_path}")

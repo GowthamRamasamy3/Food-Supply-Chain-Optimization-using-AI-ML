@@ -1,0 +1,115 @@
+2025-04-25 08:51:44,784 - root - INFO - Processed data files not found. Generating synthetic data...
+2025-04-25 08:51:45,097 - root - INFO - No existing model found or loading failed. Training new model...
+2025-04-25 08:53:52,759 - root - INFO - Loading existing processed data files.
+2025-04-25 08:53:52,925 - root - INFO - No existing model found or loading failed. Training new model...
+2025-04-25 08:54:05,971 - root - INFO - Loading existing processed data files.
+2025-04-25 08:54:05,993 - root - INFO - No existing model found or loading failed. Training new model...
+2025-04-25 08:56:37,802 - root - INFO - Loading existing processed data files.
+2025-04-25 08:56:37,823 - root - INFO - Loading existing models.
+2025-04-25 08:57:05,902 - root - INFO - Loading existing processed data files.
+2025-04-25 08:57:05,918 - root - INFO - Loading existing models.
+2025-04-25 09:00:40,012 - root - INFO - Loading existing processed data files.
+2025-04-25 09:00:40,032 - root - INFO - Loading existing models.
+2025-04-25 09:15:43,129 - root - INFO - Loading existing processed data files.
+2025-04-25 09:15:43,149 - root - INFO - Loading existing models.
+2025-04-25 09:18:18,330 - root - INFO - Loading existing processed data files.
+2025-04-25 09:18:18,366 - root - INFO - Loading existing models.
+2025-04-25 09:18:24,858 - root - INFO - Loading existing processed data files.
+2025-04-25 09:18:24,875 - root - INFO - Loading existing models.
+2025-04-25 15:37:23,880 - root - INFO - Loading existing processed data files.
+2025-04-25 15:37:23,911 - root - INFO - Loading existing models.
+2025-04-26 03:36:27,816 - root - INFO - Loading existing processed data files.
+2025-04-26 03:36:27,820 - root - INFO - Loading existing processed data files.
+2025-04-26 03:36:27,869 - root - INFO - Loading existing models.
+2025-04-26 03:36:27,878 - root - INFO - Loading existing models.
+2025-04-26 03:36:55,782 - root - INFO - Loading existing processed data files.
+2025-04-26 03:36:55,849 - root - INFO - Loading existing models.
+2025-04-26 03:43:05,773 - root - INFO - Loading existing processed data files.
+2025-04-26 03:43:05,811 - root - INFO - Loading existing models.
+2025-04-26 03:43:43,093 - root - INFO - Generating synthetic data for year 2023...
+2025-04-26 03:43:43,431 - root - INFO - Loading existing models.
+2025-04-26 03:45:53,288 - root - INFO - Generating synthetic data for year 2023...
+2025-04-26 03:45:53,710 - root - INFO - Loading existing models.
+2025-04-26 03:46:11,184 - root - INFO - Generating synthetic data for year 2025...
+2025-04-26 03:46:11,482 - root - INFO - Loading existing models.
+2025-04-26 03:54:55,622 - main - ERROR - Exception on / [GET]
+Traceback (most recent call last):
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/flask/app.py", line 1511, in wsgi_app
+    response = self.full_dispatch_request()
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/flask/app.py", line 919, in full_dispatch_request
+    rv = self.handle_user_exception(e)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/flask/app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+         ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/flask/app.py", line 902, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/main.py", line 306, in index
+    """.format(tomorrow=tomorrow)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: unexpected '{' in field name
+2025-04-26 03:54:56,996 - main - ERROR - Exception on / [GET]
+Traceback (most recent call last):
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/flask/app.py", line 1511, in wsgi_app
+    response = self.full_dispatch_request()
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/flask/app.py", line 919, in full_dispatch_request
+    rv = self.handle_user_exception(e)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/flask/app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+         ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/flask/app.py", line 902, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/main.py", line 306, in index
+    """.format(tomorrow=tomorrow)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: unexpected '{' in field name
+2025-04-26 03:56:47,182 - root - INFO - Loading existing processed data files.
+2025-04-26 03:56:47,203 - root - INFO - Loading existing models.
+2025-04-26 03:59:49,987 - root - INFO - Loading existing processed data files.
+2025-04-26 03:59:50,011 - root - INFO - Loading existing processed data files.
+2025-04-26 03:59:50,015 - root - INFO - Loading existing models.
+2025-04-26 03:59:50,044 - root - INFO - Loading existing models.
+2025-04-26 04:01:55,126 - root - INFO - Loading existing processed data files.
+2025-04-26 04:01:55,150 - root - INFO - Loading existing models.
+2025-04-26 04:01:56,435 - root - INFO - Food supply optimization model training completed successfully!
+2025-04-26 04:01:57,679 - root - INFO - Loading existing processed data files.
+2025-04-26 04:01:57,700 - root - INFO - Loading existing models.
+2025-04-26 04:01:58,283 - root - ERROR - Error in predict_specific: feature_names mismatch: ['week', 'center_id', 'meal_id', 'checkout_price', 'base_price', 'emailer_for_promotion', 'homepage_featured', 'is_holiday', 'avg_temperature', 'precipitation', 'discount', 'lag_1', 'lag_2', 'lag_3', 'ewma', 'week_sin', 'week_cos', 'center_type_TYPE_A', 'center_type_TYPE_B', 'center_type_TYPE_C', 'category_Beverages', 'category_Dessert', 'category_Main Course', 'category_Starter', 'cuisine_Chinese', 'cuisine_Continental', 'cuisine_Indian', 'cuisine_Italian', 'cuisine_Thai', 'country_India', 'country_UK', 'country_USA'] ['week', 'center_id', 'meal_id', 'checkout_price', 'base_price', 'emailer_for_promotion', 'homepage_featured', 'is_holiday', 'avg_temperature', 'precipitation', 'discount', 'lag_1', 'lag_2', 'lag_3', 'ewma', 'week_sin', 'week_cos', 'center_type_TYPE_A', 'category_Dessert', 'category_Main Course', 'category_Starter', 'cuisine_Continental', 'cuisine_Indian', 'cuisine_Italian', 'cuisine_Thai', 'country_India']
+expected country_USA, center_type_TYPE_B, center_type_TYPE_C, country_UK, category_Beverages, cuisine_Chinese in input data
+2025-04-26 04:02:29,378 - root - INFO - Loading existing processed data files.
+2025-04-26 04:02:29,434 - root - INFO - Loading existing models.
+2025-04-26 04:02:30,305 - root - ERROR - Error in predict_specific: feature_names mismatch: ['week', 'center_id', 'meal_id', 'checkout_price', 'base_price', 'emailer_for_promotion', 'homepage_featured', 'is_holiday', 'avg_temperature', 'precipitation', 'discount', 'lag_1', 'lag_2', 'lag_3', 'ewma', 'week_sin', 'week_cos', 'center_type_TYPE_A', 'center_type_TYPE_B', 'center_type_TYPE_C', 'category_Beverages', 'category_Dessert', 'category_Main Course', 'category_Starter', 'cuisine_Chinese', 'cuisine_Continental', 'cuisine_Indian', 'cuisine_Italian', 'cuisine_Thai', 'country_India', 'country_UK', 'country_USA'] ['week', 'center_id', 'meal_id', 'checkout_price', 'base_price', 'emailer_for_promotion', 'homepage_featured', 'is_holiday', 'avg_temperature', 'precipitation', 'discount', 'lag_1', 'lag_2', 'lag_3', 'ewma', 'week_sin', 'week_cos', 'center_type_TYPE_A', 'category_Dessert', 'category_Main Course', 'category_Starter', 'cuisine_Continental', 'cuisine_Indian', 'cuisine_Italian', 'cuisine_Thai', 'country_India']
+expected center_type_TYPE_B, cuisine_Chinese, country_USA, center_type_TYPE_C, country_UK, category_Beverages in input data
+2025-04-26 04:04:24,903 - root - INFO - Loading existing processed data files.
+2025-04-26 04:04:24,976 - root - INFO - Loading existing models.
+2025-04-26 04:04:26,737 - root - ERROR - Error in predict_specific: Object of type DataFrame is not JSON serializable
+2025-04-26 04:06:31,673 - root - INFO - Loading existing processed data files.
+2025-04-26 04:06:31,699 - root - INFO - Loading existing models.
+2025-04-26 04:06:33,075 - root - INFO - Food supply optimization model training completed successfully!
+2025-04-26 04:07:46,419 - root - INFO - Loading existing processed data files.
+2025-04-26 04:07:46,441 - root - INFO - Loading existing models.
+2025-04-26 04:07:50,985 - root - INFO - Loading existing processed data files.
+2025-04-26 04:07:51,017 - root - INFO - Loading existing models.
+2025-04-26 04:07:52,567 - root - ERROR - Error in predict_specific: list indices must be integers or slices, not str
+2025-04-26 04:11:50,744 - root - INFO - Loading existing processed data files.
+2025-04-26 04:11:50,770 - root - INFO - Loading existing models.
+2025-04-26 04:11:51,987 - root - INFO - Food supply optimization model training completed successfully!
+2025-04-26 11:08:57,473 - root - INFO - Loading existing processed data files.
+2025-04-26 11:08:57,519 - root - INFO - Loading existing models.
+2025-04-26 11:08:57,630 - root - ERROR - Error loading existing models: Unrecognized keyword arguments passed to LSTM: {'batch_input_shape': [None, 4, 30], 'time_major': False}
+2025-04-26 11:08:57,630 - root - INFO - No existing model found or loading failed. Training new model...
+2025-04-26 11:09:11,720 - root - INFO - Food supply optimization model training completed successfully!
+2025-04-26 13:03:55,107 - root - INFO - Loading existing processed data files.
+2025-04-26 13:03:55,155 - root - INFO - Loading existing models.
+2025-04-26 13:03:56,554 - root - INFO - Food supply optimization model training completed successfully!
+2025-04-26 13:04:40,955 - root - INFO - Loading existing processed data files.
+2025-04-26 13:04:40,988 - root - INFO - Loading existing models.
+2025-04-26 13:04:42,157 - root - INFO - Food supply optimization model training completed successfully!
+2025-04-26 13:32:11,246 - root - INFO - Loading existing processed data files.
+2025-04-26 13:32:11,308 - root - INFO - Loading existing models.
+2025-04-26 13:32:12,829 - root - INFO - Food supply optimization model training completed successfully!
