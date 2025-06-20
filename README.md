@@ -246,4 +246,136 @@ pip install -r requirements.txt
 ```
 
 ---
+Sure Gowtham! Below is a **simple and clear guide** on how anyone (even a beginner) can run your **Food Supply Chain Optimization project** from GitHub step by step. You can put this in your **`README.md` file** under the "How to Run" section.
+
+---
+
+## 🚀 **How to Run This Project: Smart Forecasting in Food Supply Chain Optimization**
+
+---
+
+### **1. Clone the Repository**
+
+First, clone the GitHub repo to your local machine:
+
+```bash
+git clone https://github.com/your-username/Food-Supply-Chain-Forecasting.git
+cd Food-Supply-Chain-Forecasting
+```
+
+---
+
+### **2. Create a Virtual Environment (Recommended)**
+
+```bash
+python -m venv venv
+```
+
+Activate the environment:
+
+* **Windows:**
+
+  ```bash
+  venv\Scripts\activate
+  ```
+* **Linux/Mac:**
+
+  ```bash
+  source venv/bin/activate
+  ```
+
+---
+
+### **3. Install Required Libraries**
+
+Install all required Python libraries listed in `requirements.txt`:
+
+```bash
+pip install -r requirements.txt
+```
+
+---
+
+### **4. Prepare the Dataset**
+
+Place the dataset files (`train.csv`, `test.csv`, or other data files) into the `/data` folder.
+
+✅ Make sure:
+
+* The dataset is preprocessed as per the **EDA notebook** or use `src/preprocess.py` to preprocess raw data.
+
+---
+
+### **6. View the Model Performance**
+
+Each notebook will:
+
+* Train the model(s)
+* Display evaluation metrics (RMSE, MAE, R² Score)
+* Plot graphs like:
+
+  * Predicted vs Actual Demand
+  * Residual Plots
+  * Feature Importance (for tree models)
+
+---
+
+### **7. (Optional) Save and Load Models**
+
+You can save trained models using:
+
+```python
+import joblib
+joblib.dump(model, 'models/rf_model.pkl')
+```
+
+And load them later for inference:
+
+```python
+model = joblib.load('models/rf_model.pkl')
+```
+
+For LSTM (Keras):
+
+```python
+model.save('models/lstm_model.h5')
+```
+
+And to load:
+
+```python
+from keras.models import load_model
+model = load_model('models/lstm_model.h5')
+```
+
+---
+
+
+**Complete Code Execution In one Step :
+After completion of installation of requirement.txt !**
+
+```bash
+streamlit run streamlit_app.py --server.address localhost --server.port 8501
+```
+
+
+### **8. (Optional) Run Python Scripts Instead of Notebooks**
+
+If you want to run the project via Python scripts instead of notebooks:
+
+```bash
+python src/preprocess.py   # Preprocess data
+python src/model_train.py  # Train models
+python src/evaluate.py     # Evaluate models
+```
+
+
+## ❗ **Important Notes:**
+
+* Make sure the dataset is inside the `data/` folder.
+* Python version: **3.10+ recommended**
+* GPU is optional (only needed for faster LSTM training).
+
+---
+
 
